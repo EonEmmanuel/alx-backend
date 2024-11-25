@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-""" doc doc doc """
+"""Use user LOcal to get request """
 from flask import Flask, render_template, request, g
 from flask_babel import Babel
 
 
-class Config(object):
-    """doc doc doc"""
-
+class Config:
+    """ Config class for app """
     LANGUAGES = ["en", "fr"]
     BABEL_DEFAULT_LOCALE = "en"
     BABEL_DEFAULT_TIMEZONE = "UTC"
@@ -14,7 +13,9 @@ class Config(object):
 
 app = Flask(__name__)
 app.config.from_object(Config)
+app.url_map.strict_slashes = False
 babel = Babel(app)
+
 
 users = {
     1: {"name": "Balou", "locale": "fr", "timezone": "Europe/Paris"},
@@ -24,35 +25,38 @@ users = {
 }
 
 
-def get_user() -> dict:
-    """doc doc doc"""
-    user_id = request.args.get("login_as")
-    if user_id and int(user_id) in users:
-        return users[int(user_id)]
-    return None
+def get_user(login_as: str) -> dict:
+    """ Get user from users """
+    return users.get(int(login_as), None)
 
 
 @app.before_request
 def before_request() -> None:
-    """doc doc doc"""
-    g.user = get_user()
+    """ Before request """
+    user = get_user(request.args.get('login_as'))
+    if user:
+        g.user = user
 
 
 @babel.localeselector
 def get_locale() -> str:
-    """doc doc doc"""
-    if request.args.get("locale") in app.config["LANGUAGES"]:
-        return request.args.get("locale")
-    if g.user and g.user.get("locale") in app.config["LANGUAGES"]:
-        return g.user["locale"]
+    """ Get locale from request """
+    locale = request.args.get('locale')
+    if locale and locale in app.config["LANGUAGES"]:
+        return locale
+    if g.user and g.user.get('locale') in app.config["LANGUAGES"]:
+        return g.user.get('locale')
+    header_locale = request.headers.get('locale')
+    if header_locale and header_locale in app.config["LANGUAGES"]:
+        return header_locale
     return request.accept_languages.best_match(app.config["LANGUAGES"])
 
 
 @app.route("/")
-def index() -> str:
-    """doc doc doc"""
-    return render_template("5-index.html")
+def welcome() -> str:
+    """ / page """
+    return render_template('6-index.html')
 
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port="5000")
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
